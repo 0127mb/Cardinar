@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+</head>
+
+<body style="font-family: Arial, sans-serif; padding: 20px;">
+    <h2>Hello, {{fullName}}!</h2>
+
+    {{#if (eq type "register")}}
+    <p>Thank you for registering. Please click the button below to activate your account:</p>
+    {{else}}
+    <p>You requested to login. Click the button below to continue:</p>
+    {{/if}}
+
+    <a href="{{link}}" style="display:inline-block; padding:12px 24px; background:#2563eb; color:#fff;
+            text-decoration:none; border-radius:6px; margin-top:16px;">
+        {{#if (eq type "register")}}Activate Account{{else}}Login{{/if}}
+    </a>
+
+    <p style="margin-top:24px; color:#6b7280; font-size:14px;">
+        This link expires in <strong>15 minutes</strong>.<br />
+        If you did not request this, please ignore this email.
+    </p>
+</body>
+
+</html>

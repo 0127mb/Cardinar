@@ -1,0 +1,9 @@
+allowBuilds:
+  '@nestjs/core': false
+  '@scarf/scarf': true
+  '@swc/core': false
+  argon2: false
+  bcrypt: false
+  core-js: true
+  nodemon: true
+  unrs-resolver: false
