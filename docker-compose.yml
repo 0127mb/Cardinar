@@ -1,6 +1,21 @@
-version: '3.8'
-
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cardinar_api
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      DB_LOGGING: "false"
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    networks:
+      - cardinar_network
+
   postgres:
     image: postgres:16-alpine
     container_name: cardinar_db
@@ -19,6 +34,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles: ["local-infrastructure"]
 
   postgres_test:
     image: postgres:16-alpine
@@ -38,6 +54,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles: ["test-infrastructure"]
 
   redis:
     image: redis:7-alpine
@@ -54,6 +71,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles: ["local-infrastructure"]
 
 volumes:
   postgres_data:

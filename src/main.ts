@@ -1,20 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, HttpException, HttpStatus } from '@nestjs/common';
+import { ValidationPipe, HttpStatus } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
-import { join } from 'path';
-import express from 'express';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(cookieParser());
-
-  // Serve uploads folder as static
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-    prefix: '/uploads',
-  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -39,13 +33,11 @@ async function bootstrap() {
       'Car cover shop REST API - Vertical Slice Architecture with CQRS',
     )
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-      },
-    )
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+    })
     .addCookieAuth('access_token')
     .addTag('Auth', 'Authentication endpoints')
     .addTag('Users', 'User management')
@@ -74,7 +66,7 @@ async function bootstrap() {
     });
   });
 
-  const port = process.env.PORT ?? 3001 ;
+  const port = process.env.PORT ?? 3001;
   await app.listen(port);
 
   console.log(`
@@ -87,4 +79,4 @@ async function bootstrap() {
 ╚════════════════════════════════════════════════════════════════════╝
   `);
 }
-bootstrap();
+void bootstrap();

@@ -5,10 +5,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Material } from '../material/material.entity'; 
-import { Color } from '../color/color.entity'; 
-import { CategoryType } from '../custom-model/custom-model.entity'; 
-import { part as PartType } from '../../enums/part.enum'; 
+import { Material } from '../material/material.entity';
+import { Color } from '../color/color.entity';
+import { CategoryType } from '../custom-model/custom-model.entity';
+import { part as PartType } from '../../enums/part.enum';
 
 @Entity('parts')
 export class Part {
@@ -30,7 +30,7 @@ export class Part {
   @Column()
   colorId: number;
 
-  @Column({ type: 'varchar', length: 256 })
+  @Column({ type: 'varchar', length: 512 })
   image: string;
 
   @ManyToOne(() => Material, (material) => material.parts, { lazy: true })

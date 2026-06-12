@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './shared/database/data-base.module';
 import { UsersModule } from './features/users/user.module';
 import { AuthModule } from './features/auth/auth.module';
@@ -23,12 +22,14 @@ import { OrderItemsModule } from './features/order-items/order-items.module';
 import { StaticInfoModule } from './features/static-info/static-info.module';
 import { RequestsModule } from './features/requests/requests.module';
 import { CartModule } from './features/cart/cart.module';
+import { CloudinaryModule } from './shared/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    CloudinaryModule,
     DatabaseModule,
     UsersModule,
     AuthModule,
@@ -52,6 +53,5 @@ import { CartModule } from './features/cart/cart.module';
     RequestsModule,
     CartModule,
   ],
-
 })
 export class AppModule {}

@@ -8,7 +8,7 @@ export class Banner {
   @Column({ type: 'varchar', length: 128 })
   title: string;
 
-  @Column({ type: 'varchar', length: 256 })
+  @Column({ type: 'varchar', length: 512 })
   image: string;
 
   @Column({ type: 'bool' })

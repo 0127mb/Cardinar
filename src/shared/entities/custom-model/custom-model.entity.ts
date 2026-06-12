@@ -16,6 +16,6 @@ export class CustomModel {
   @Column({ type: 'varchar', length: 128, unique: true })
   title: string;
 
-  @Column({ type: 'varchar', length: 256 })
+  @Column({ type: 'varchar', length: 512 })
   image: string;
 }

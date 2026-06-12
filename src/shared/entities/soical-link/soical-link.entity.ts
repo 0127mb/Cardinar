@@ -11,6 +11,6 @@ export class SocialLink {
   @Column({ type: 'varchar', length: 256, unique: true })
   link: string;
 
-  @Column({ type: 'varchar', length: 128 })
+  @Column({ type: 'varchar', length: 512 })
   icon: string;
 }

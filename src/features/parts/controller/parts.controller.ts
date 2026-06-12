@@ -14,7 +14,13 @@ import {
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreatePartDTO } from '../dto/create-part.dto';
 import { UpdatePartDTO } from '../dto/update-part.dto';
 import { CreatePartCommand } from '../commands/create-part/create-part.command';
@@ -25,6 +31,7 @@ import { GetPartByIdQuery } from '../queries/get-part-by-id/get-part-by-id.query
 import { JwtAuthGuard } from '../../../shared/guards/jwt.auth.guard';
 import { AdminGuard } from '../../../shared/guards/admin.guard';
 import { multerConfig } from '../../../shared/common/config/multer.config';
+import { CloudinaryService } from '../../../shared/cloudinary/cloudinary.service';
 
 @ApiTags('Parts')
 @Controller('parts')
@@ -32,6 +39,7 @@ export class PartsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Post()
@@ -39,7 +47,9 @@ export class PartsController {
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('image', multerConfig))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Create custom constructor part with its own image' })
+  @ApiOperation({
+    summary: 'Create custom constructor part with its own image',
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -54,8 +64,13 @@ export class PartsController {
       },
     },
   })
-  async create(@UploadedFile() file: Express.Multer.File, @Body() dto: CreatePartDTO) {
-    const image = file?.filename ?? dto.image;
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreatePartDTO,
+  ) {
+    const image = file
+      ? await this.cloudinaryService.uploadImage(file, 'cardinar/parts')
+      : dto.image;
     if (!image) throw new BadRequestException('Part image is required');
 
     return await this.commandBus.execute(
@@ -85,7 +100,9 @@ export class PartsController {
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('image', multerConfig))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Update custom constructor part and optionally replace its image' })
+  @ApiOperation({
+    summary: 'Update custom constructor part and optionally replace its image',
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -104,6 +121,10 @@ export class PartsController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UpdatePartDTO,
   ) {
+    const image = file
+      ? await this.cloudinaryService.uploadImage(file, 'cardinar/parts')
+      : dto.image;
+
     return await this.commandBus.execute(
       new UpdatePartCommand(
         id,
@@ -112,7 +133,7 @@ export class PartsController {
         dto.title,
         dto.materialId,
         dto.colorId,
-        file?.filename ?? dto.image,
+        image,
       ),
     );
   }

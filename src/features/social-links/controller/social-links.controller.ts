@@ -12,7 +12,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import {
   CreateSocialLinkDto,
@@ -27,6 +33,7 @@ import { SocialLink } from '../../../shared/entities/soical-link/soical-link.ent
 import { GetAllSocialLinksQuery } from '../queries/get-all-social-links/get-all.query';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from '../../../shared/common/config/multer.config';
+import { CloudinaryService } from '../../../shared/cloudinary/cloudinary.service';
 
 @ApiTags('Social Links')
 @Controller('social-links')
@@ -34,12 +41,13 @@ export class SocialLinksController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) { }
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post()
   // @UseGuards(JwtAuthGuard, AdminGuard)
   // @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor("icon",multerConfig)  )
+  @UseInterceptors(FileInterceptor('icon', multerConfig))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -52,8 +60,13 @@ export class SocialLinksController {
       },
     },
   })
-  async create(@UploadedFile() file: Express.Multer.File, @Body() dto: CreateSocialLinkDto): Promise<SocialLink> {
-    const icon = file?.filename ?? dto.icon;
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateSocialLinkDto,
+  ): Promise<SocialLink> {
+    const icon = file
+      ? await this.cloudinaryService.uploadImage(file, 'cardinar/social-links')
+      : dto.icon;
     if (!icon) throw new BadRequestException('Social link icon is required');
 
     return this.commandBus.execute(
@@ -71,7 +84,7 @@ export class SocialLinksController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update social link' })
-  @UseInterceptors(FileInterceptor("icon",multerConfig))
+  @UseInterceptors(FileInterceptor('icon', multerConfig))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -89,8 +102,12 @@ export class SocialLinksController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UpdateSocialLinkDto,
   ): Promise<SocialLink> {
+    const icon = file
+      ? await this.cloudinaryService.uploadImage(file, 'cardinar/social-links')
+      : dto.icon;
+
     return this.commandBus.execute(
-      new UpdateSocialLinkCommand(+id, dto.title, dto.link, file?.filename ?? dto.icon),
+      new UpdateSocialLinkCommand(+id, dto.title, dto.link, icon),
     );
   }
 

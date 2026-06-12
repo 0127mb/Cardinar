@@ -2,7 +2,6 @@ import * as typeorm from 'typeorm';
 import { Request } from '../request/request.entity';
 
 @typeorm.Entity('users')
-
 export class User {
   @typeorm.PrimaryGeneratedColumn()
   id: number;
@@ -19,7 +18,7 @@ export class User {
   @typeorm.Column({ type: 'varchar', length: 128 })
   password: string;
 
-  @typeorm.Column({ type: 'varchar', length: 256, nullable: true })
+  @typeorm.Column({ type: 'varchar', length: 512, nullable: true })
   profileImage?: string;
 
   @typeorm.Column({ type: 'bool', default: false })

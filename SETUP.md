@@ -417,15 +417,8 @@ redis-cli ping
 
 ### File Upload Not Working
 
-```bash
-# Create uploads directory
-mkdir -p uploads
-
-# Set correct permissions
-chmod 755 uploads
-
-# Ensure Node process can write
-```
+Confirm `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and
+`CLOUDINARY_API_SECRET` are configured in the environment.
 
 ## 📚 Swagger Documentation
 
@@ -468,7 +461,7 @@ Features:
 |-------|----------|
 | `listen EADDRINUSE` | Change PORT in .env or kill process |
 | `connection refused` | Start docker-compose services |
-| `ENOENT: no such file` | Run `mkdir -p uploads` |
+| Cloudinary upload failed | Verify the three `CLOUDINARY_*` environment variables |
 | `jwt malformed` | Ensure token is valid and not expired |
 | `Unauthorized` | Include Authorization header with token |
 

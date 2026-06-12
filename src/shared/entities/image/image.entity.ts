@@ -15,7 +15,7 @@ export class Image {
   @Column()
   productId: number;
 
-  @Column({ type: 'varchar', length: 256 })
+  @Column({ type: 'varchar', length: 512 })
   image: string;
 
   @Column({ type: 'int' })

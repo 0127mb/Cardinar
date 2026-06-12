@@ -6,12 +6,12 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query,
   UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
   Body,
+  BadRequestException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
@@ -30,6 +30,7 @@ import { AddImageDto, UpdateImagePositionDto } from '../dto/images.dto';
 import { AddImageCommand } from '../commands/add/add-image.handeler';
 import { UpdateImagePositionCommand } from '../commands/update/update-image.command';
 import { DeleteImageCommand } from '../commands/delete/delete-image.command';
+import { CloudinaryService } from '../../../shared/cloudinary/cloudinary.service';
 
 @ApiTags('Images')
 @Controller('images')
@@ -37,6 +38,7 @@ export class ImagesController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   // Get all images for a product
@@ -63,12 +65,20 @@ export class ImagesController {
       },
     },
   })
-  uploadImage(
+  async uploadImage(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: AddImageDto,
   ) {
+    if (!file) {
+      throw new BadRequestException('Product image is required');
+    }
+    const imageUrl = await this.cloudinaryService.uploadImage(
+      file,
+      'cardinar/products',
+    );
+
     return this.commandBus.execute(
-      new AddImageCommand(dto.productId, file.filename, dto.position),
+      new AddImageCommand(dto.productId, imageUrl, dto.position),
     );
   }
 
@@ -97,15 +107,21 @@ export class ImagesController {
     @UploadedFiles() files: Express.Multer.File[],
     @Body() dto: AddImageDto,
   ) {
-    const results = [];
-    for (const file of files) {
-      const image = await this.commandBus.execute(
-        new AddImageCommand(dto.productId, file.filename),
-      );
-      //@ts-ignore
-      results.push(image);
+    if (!files?.length) {
+      throw new BadRequestException('At least one product image is required');
     }
-    return results;
+
+    const imageUrls = await Promise.all(
+      files.map((file) =>
+        this.cloudinaryService.uploadImage(file, 'cardinar/products'),
+      ),
+    );
+
+    return Promise.all(
+      imageUrls.map((imageUrl) =>
+        this.commandBus.execute(new AddImageCommand(dto.productId, imageUrl)),
+      ),
+    );
   }
 
   // Update image position

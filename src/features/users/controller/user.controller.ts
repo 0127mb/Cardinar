@@ -34,6 +34,7 @@ import { CurrentUser } from '../../../shared/common/decorators/current-user.deco
 import { multerConfig } from '../../../shared/common/config/multer.config';
 import { User } from '../../../shared/entities/user/user.entity';
 import { UpdateProfileImageCommand } from '../commands/update-profile-image/update-profile-image.command';
+import { CloudinaryService } from '../../../shared/cloudinary/cloudinary.service';
 
 @Controller('User')
 @ApiTags('User')
@@ -41,7 +42,8 @@ export class UsersController {
   constructor(
     private readonly cBus: CommandBus,
     private readonly qBus: QueryBus,
-  ) { }
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post('Create-user')
   createuser(@Body() dto: CreateUserDto) {
@@ -61,7 +63,7 @@ export class UsersController {
   getAll(query: GetAllUsersQuery) {
     return this.qBus.execute(new GetAllUsersQuery());
   }
-    @UseGuards(JwtAuthGuard,AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Get()
   findOne(@Query() querry: GetAllUsersQuery, @Body() dto: GetUserDto) {
     return this.qBus.execute(
@@ -87,12 +89,16 @@ export class UsersController {
     @CurrentUser() user: User,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file?.filename) {
+    if (!file) {
       throw new BadRequestException('Profile image is required');
     }
 
+    const profileImage = await this.cloudinaryService.uploadImage(
+      file,
+      'cardinar/users',
+    );
     const updatedUser = await this.cBus.execute(
-      new UpdateProfileImageCommand(user.id, file.filename),
+      new UpdateProfileImageCommand(user.id, profileImage),
     );
 
     return {
@@ -105,8 +111,8 @@ export class UsersController {
       isActive: updatedUser.isActive,
     };
   }
-  @Patch(":id")
-  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
     return this.cBus.execute(
       new UpdateUserCommand(
         dto.id,
@@ -119,7 +125,7 @@ export class UsersController {
       ),
     );
   }
-    @UseGuards(JwtAuthGuard,AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Delete(':id')
   delete(@Param('id', ParseIntPipe) id: number) {
     return this.cBus.execute(new DeleteUserCommand(id));

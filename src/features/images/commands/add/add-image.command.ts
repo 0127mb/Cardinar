@@ -17,7 +17,7 @@ export class AddImageHandler implements ICommandHandler<AddImageCommand> {
   ) {}
 
   async execute(command: AddImageCommand): Promise<Image> {
-    const { productId, filename, position } = command;
+    const { productId, imageUrl, position } = command;
 
     const product = await this.productRepository.findOne({
       where: { id: productId },
@@ -35,7 +35,7 @@ export class AddImageHandler implements ICommandHandler<AddImageCommand> {
 
     const image = this.imageRepository.create({
       productId,
-      image: `/uploads/${filename}`,
+      image: imageUrl,
       position: imagePosition,
     });
 

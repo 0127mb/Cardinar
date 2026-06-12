@@ -6,6 +6,7 @@ dist
 .env
 .env.local
 .env.*.local
+!.env
 .vscode
 .idea
 *.swp
@@ -13,6 +14,5 @@ dist
 *~
 coverage
 .nyc_output
-uploads
 .DS_Store
 .docker

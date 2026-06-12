@@ -2,18 +2,42 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+function requiresSsl(databaseUrl: string): boolean {
+  const url = new URL(databaseUrl);
+
+  return url.hostname.endsWith('.neon.tech') || url.searchParams.has('sslmode');
+}
+
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('DB_URL'),
-        entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-        synchronize: true,
-        logging: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const databaseUrl = config.get<string>('DB_URL');
+        const isProduction = config.get<string>('NODE_ENV') === 'production';
+
+        if (!databaseUrl) {
+          throw new Error(
+            'Database configuration is missing. Set the DB_URL environment variable.',
+          );
+        }
+
+        return {
+          type: 'postgres',
+          url: databaseUrl,
+          ssl: requiresSsl(databaseUrl)
+            ? { rejectUnauthorized: false }
+            : undefined,
+          entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+          synchronize:
+            config.get<string>(
+              'DB_SYNCHRONIZE',
+              isProduction ? 'false' : 'true',
+            ) === 'true',
+          logging: config.get<string>('DB_LOGGING', 'false') === 'true',
+        } as const;
+      },
     }),
   ],
 })

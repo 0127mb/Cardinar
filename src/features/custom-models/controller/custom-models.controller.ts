@@ -14,7 +14,13 @@ import {
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateCustomModelDTO } from '../dto/create-custom-model.dto';
 import { UpdateCustomModelDTO } from '../dto/update-custom-model.dto';
 import { CreateCustomModelCommand } from '../commands/create-custom-model/create-custom-model.command';
@@ -25,6 +31,7 @@ import { GetCustomModelByIdQuery } from '../queries/get-custom-model-by-id/get-c
 import { JwtAuthGuard } from '../../../shared/guards/jwt.auth.guard';
 import { AdminGuard } from '../../../shared/guards/admin.guard';
 import { multerConfig } from '../../../shared/common/config/multer.config';
+import { CloudinaryService } from '../../../shared/cloudinary/cloudinary.service';
 
 @ApiTags('Custom Models')
 @Controller('custom-models')
@@ -32,6 +39,7 @@ export class CustomModelsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Post()
@@ -55,7 +63,9 @@ export class CustomModelsController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateCustomModelDTO,
   ) {
-    const image = file?.filename ?? dto.image;
+    const image = file
+      ? await this.cloudinaryService.uploadImage(file, 'cardinar/custom-models')
+      : dto.image;
     if (!image) throw new BadRequestException('Custom model image is required');
 
     return await this.commandBus.execute(
@@ -78,7 +88,9 @@ export class CustomModelsController {
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('image', multerConfig))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Update constructor base model and optionally replace its image' })
+  @ApiOperation({
+    summary: 'Update constructor base model and optionally replace its image',
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -93,8 +105,12 @@ export class CustomModelsController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UpdateCustomModelDTO,
   ) {
+    const image = file
+      ? await this.cloudinaryService.uploadImage(file, 'cardinar/custom-models')
+      : dto.image;
+
     return await this.commandBus.execute(
-      new UpdateCustomModelCommand(id, dto.title, file?.filename ?? dto.image),
+      new UpdateCustomModelCommand(id, dto.title, image),
     );
   }
 
