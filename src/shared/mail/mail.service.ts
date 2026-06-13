@@ -11,7 +11,7 @@ export class MailService {
     token: string,
     type: 'register' | 'login',
   ) {
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://10.155.187.206:3000';
+    const frontendUrl = process.env.FRONTEND_URL ;
     const link = `${frontendUrl}/features/authentication/verify?token=${token}&type=${type}`;
 
     await this.mailerService.sendMail({
