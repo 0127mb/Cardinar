@@ -33,16 +33,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
   async validate(payload: {
-    sub: number;
-    email: string;
+    userId: number;
     phoneNumber: string;
-    isAdmin: boolean;
   }) {
     const user = await this.user.findOne({
-      where: { id: payload.sub },
+      where: { id: payload.userId, phoneNumber: payload.phoneNumber },
     });
-    if (!user) {
-      throw new UnauthorizedException('user not registrated');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User is not registered');
     }
     return user;
   }

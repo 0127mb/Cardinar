@@ -1,40 +1,47 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsString, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({ example: 'John Doe' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @MinLength(2)
+  @MaxLength(64)
   fullName: string;
 
-  @ApiProperty({ example: '+1234567890' })
+  @ApiProperty({ example: '+998901234567' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @Matches(/^\+?[1-9]\d{7,14}$/, {
+    message: 'phoneNumber must be a valid international phone number',
+  })
   phoneNumber: string;
 
-  @ApiProperty({ example: 'john.doe@example.com' })
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: '123456', minLength: 6 })
   @IsString()
   @MinLength(6)
+  @MaxLength(128)
   password: string;
-  @ApiProperty({ example: false })
-  @IsBoolean()
-  isAdmin: boolean  
-  @ApiProperty({ example: true })
-  @IsBoolean()
-  isActive: boolean
 }
-export class LoginDto {
-  @ApiProperty({ example: 'john.doe@example.com' })
-  @IsEmail()
-  email: string;
 
-  @ApiProperty({ example: 'password123' })
+export class LoginDto {
+  @ApiProperty({ example: '+998901234567' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @Matches(/^\+?[1-9]\d{7,14}$/, {
+    message: 'phoneNumber must be a valid international phone number',
+  })
+  phoneNumber: string;
+
+  @ApiProperty({ example: '123456', minLength: 6 })
   @IsString()
   @MinLength(6)
+  @MaxLength(128)
   password: string;
-  @ApiProperty({ example: '+1234567890' })
-  @IsString()
-  phoneNumber: string;
 }

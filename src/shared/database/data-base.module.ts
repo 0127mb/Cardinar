@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RemoveEmailAndOtp1781347200000 } from './migrations/1781347200000-remove-email-and-otp';
 
 function requiresSsl(databaseUrl: string): boolean {
   const url = new URL(databaseUrl);
@@ -30,6 +31,8 @@ function requiresSsl(databaseUrl: string): boolean {
             ? { rejectUnauthorized: false }
             : undefined,
           entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+          migrations: [RemoveEmailAndOtp1781347200000],
+          migrationsRun: true,
           synchronize:
             config.get<string>(
               'DB_SYNCHRONIZE',

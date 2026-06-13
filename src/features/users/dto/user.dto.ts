@@ -1,52 +1,42 @@
 import {
-  IsEmail,
   IsString,
   MinLength,
-  IsPhoneNumber,
   IsOptional,
   IsNumber,
   IsBoolean,
+  Matches,
+  MaxLength,
 } from 'class-validator';
-import { PartialType } from '@nestjs/mapped-types';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @ApiProperty({
-    example: 'John Doe',
-  })
+  @ApiProperty({ example: 'John Doe' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @MinLength(2)
+  @MaxLength(64)
   fullName: string;
 
-  @ApiProperty({
-    example: '+998772980127',
-  })
+  @ApiProperty({ example: '+998901234567' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @Matches(/^\+?[1-9]\d{7,14}$/)
   phoneNumber: string;
 
-  @ApiProperty({
-    example: 'example@gmail.com',
-  })
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({
-    example: 'password123',
-  })
+  @ApiProperty({ example: '123456' })
   @IsString()
   @MinLength(6)
+  @MaxLength(128)
   password: string;
 
-  @ApiProperty({
-    example: false,
-  })
+  @ApiProperty({ example: false, required: false })
   @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
   isAdmin?: boolean;
-  @ApiProperty({
-    example: true,
-  })
+
+  @ApiProperty({ example: true, required: false })
   @Type(() => Boolean)
   @IsOptional()
   @IsBoolean()
@@ -54,70 +44,52 @@ export class CreateUserDto {
 }
 
 export class UpdateUserDto {
-  @ApiProperty({
-    example: 1,
-  })
-  id: number
-  @ApiProperty({
-    example: 'John Doe',
-  })
+  @ApiProperty({ example: 'John Doe', required: false })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  fullName: string;
+  @MinLength(2)
+  @MaxLength(64)
+  fullName?: string;
 
-  @ApiProperty({
-    example: '+998772980127',
-  })
+  @ApiProperty({ example: '+998901234567', required: false })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  phoneNumber: string;
+  @Matches(/^\+?[1-9]\d{7,14}$/)
+  phoneNumber?: string;
 
-  @ApiProperty({
-    example: 'example@gmail.com',
-  })
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({
-    example: 'password123',
-  })
+  @ApiProperty({ example: '123456', required: false })
+  @IsOptional()
   @IsString()
   @MinLength(6)
-  password: string;
-  @ApiProperty({
-    example: false,
-  })
+  @MaxLength(128)
+  password?: string;
+
+  @ApiProperty({ example: false, required: false })
   @IsOptional()
   @IsBoolean()
   isAdmin?: boolean;
-  @ApiProperty({
-    example: true,
-  })
+
+  @ApiProperty({ example: true, required: false })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }
+
 export class GetUserDto {
-  @ApiProperty({
-    example: 1,
-  })
+  @ApiProperty({ example: 1, required: false })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   id?: number;
-  @ApiProperty({
-    example: 'example@gmail.com',
-  })
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-  @ApiProperty({
-    example: '+998772980127',
-  })
+
+  @ApiProperty({ example: '+998901234567', required: false })
   @IsOptional()
   @IsString()
   phoneNumber?: string;
-  @ApiProperty({
-    example: 'Jhon_rembo',
-  })
+
+  @ApiProperty({ example: 'John Doe', required: false })
   @IsOptional()
   @IsString()
   fullName?: string;

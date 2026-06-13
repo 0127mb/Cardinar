@@ -3,63 +3,64 @@ import { LoginCommand } from './login.command';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../../../shared/entities/user/user.entity'; 
 import { Repository } from 'typeorm';
-import { UnauthorizedException } from '@nestjs/common';
-import argon2 from 'argon2';
-import { Otp, OtpType } from '../../../../shared/entities/otp/otp.entity';
-import { MailService } from '../../../../shared/mail/mail.service';
-import { v4 as uuidv4 } from 'uuid';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import * as argon2 from 'argon2';
+import { JwtService } from '@nestjs/jwt';
 
 @CommandHandler(LoginCommand)
 export class LoginHandler implements ICommandHandler<LoginCommand> {
   constructor(
     @InjectRepository(User)
-    private readonly user: Repository<User>,
-    @InjectRepository(Otp)
-    private readonly otp: Repository<Otp>,
-    private readonly mailService: MailService,
+    private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
-  async execute(command: LoginCommand): Promise<any> {
-    const { phoneNumber, email, password } = command;
-    const exist = await this.user.findOne({
-      where: [{ email }, { phoneNumber }],
-    });
-    if (!exist) {
-      throw new UnauthorizedException('invalid credentials');
-    }
-    const hashPassword = await argon2.verify(exist.password, password);
-    if (!hashPassword) {
-      throw new UnauthorizedException('invalid credentials');
+
+  async execute(command: LoginCommand) {
+    const { phoneNumber, password } = command;
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.phoneNumber = :phoneNumber', { phoneNumber })
+      .getOne();
+
+    if (!user) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
 
-    const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    const otp = this.otp.create({
-      userId: exist.id,
-      token,
-      type: OtpType.LOGIN,
-      expiresAt,
+    if (!user.isActive) {
+      throw new HttpException('Account is inactive', HttpStatus.UNAUTHORIZED);
+    }
+
+    const usesLegacyArgonHash = user.password.startsWith('$argon2');
+    const passwordMatches = usesLegacyArgonHash
+      ? await argon2.verify(user.password, password)
+      : await bcrypt.compare(password, user.password);
+
+    if (!passwordMatches) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (usesLegacyArgonHash) {
+      user.password = await bcrypt.hash(password, 12);
+      await this.userRepository.save(user);
+    }
+
+    const accessToken = this.jwtService.sign({
+      userId: user.id,
+      phoneNumber: user.phoneNumber,
     });
-    await this.otp.save(otp);
-    await this.mailService.sendOtpLink(
-      exist.email,
-      exist.fullName,
-      otp.token,
-      'login',
-    );
 
     return {
       user: {
-        id: exist.id,
-        fullName: exist.fullName,
-        email: exist.email,
-        isAdmin: exist.isAdmin,
-        phoneNumber: exist.phoneNumber,
-        profileImage: exist.profileImage,
+        id: user.id,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        profileImage: user.profileImage,
+        isAdmin: user.isAdmin,
+        isActive: user.isActive,
       },
-      token: otp.token,
-      accessToken: otp.token,
-      verificationToken: otp.token,
-      message: 'Login link sent to your email.',
+      accessToken,
     };
   }
 }

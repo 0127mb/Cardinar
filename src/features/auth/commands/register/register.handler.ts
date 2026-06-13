@@ -1,66 +1,57 @@
-import { CommandHandler, ICommand, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RegisterCommand } from './register.command';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../../../shared/entities/user/user.entity'; 
 import { Repository } from 'typeorm';
-import * as argon2 from 'argon2';
-import { ConflictException } from '@nestjs/common';
-import { OtpType,Otp } from '../../../../shared/entities/otp/otp.entity'; 
-import { MailService } from '../../../../shared/mail/mail.service';
-import { v4 as uuidv4 } from 'uuid';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @CommandHandler(RegisterCommand)
 export class RegisterHandler implements ICommandHandler<RegisterCommand> {
   constructor(
     @InjectRepository(User)
-    private readonly user: Repository<User>,
-    @InjectRepository(Otp) private readonly otp: Repository<Otp>,
-    private readonly MailService: MailService,
+    private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
-  async execute(command: RegisterCommand): Promise<any> {
-    const { fullName, email, password, phoneNumber, isAdmin, isActive } = command;
-    const existing = await this.user.findOne({
-      where: [{ phoneNumber }],
+
+  async execute(command: RegisterCommand) {
+    const { fullName, password, phoneNumber } = command;
+    const existing = await this.userRepository.findOne({
+      where: { phoneNumber },
     });
+
     if (existing) {
-      throw new ConflictException('the user given information already axist');
+      throw new HttpException(
+        'User with this phone number already exists',
+        HttpStatus.CONFLICT,
+      );
     }
-    const haashedPassword = await argon2.hash(password);
-    const createUser = this.user.create({
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = this.userRepository.create({
       fullName,
       phoneNumber,
-      email,
-      password: haashedPassword,
-      isAdmin,
-      isActive,
+      password: hashedPassword,
+      isAdmin: false,
+      isActive: true,
     });
-    const save = await this.user.save(createUser);
-    const otpToken = uuidv4();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    const otp = this.otp.create({
-      userId: save.id,
-      token: otpToken,
-      type: OtpType.REGISTER,
-      expiresAt,
+    const savedUser = await this.userRepository.save(user);
+    const accessToken = this.jwtService.sign({
+      userId: savedUser.id,
+      phoneNumber: savedUser.phoneNumber,
     });
-    await this.otp.save(otp);
-    await this.MailService.sendOtpLink(email, fullName, otp.token, 'register');
 
     return {
       user: {
-        id: save.id,
-        fullName: save.fullName,
-        email: save.email,
-        phoneNumber: save.phoneNumber,
-        profileImage: save.profileImage,
-        isAdmin: save.isAdmin,
-        isActive: save.isActive,
+        id: savedUser.id,
+        fullName: savedUser.fullName,
+        phoneNumber: savedUser.phoneNumber,
+        profileImage: savedUser.profileImage,
+        isAdmin: savedUser.isAdmin,
+        isActive: savedUser.isActive,
       },
-      token: otp.token,
-      accessToken: otp.token,
-      verificationToken: otp.token,
-      message:
-        'Registration successful. Please check your email to activate your account.',
+      accessToken,
     };
   }
 }

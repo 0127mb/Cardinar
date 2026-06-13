@@ -45,20 +45,22 @@ export class UsersController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
   @Post('Create-user')
   createuser(@Body() dto: CreateUserDto) {
     return this.cBus.execute(
       new CreateUserCommand(
-        dto.phoneNumber,
-        dto.email,
-        dto.password,
         dto.fullName,
-        dto.isAdmin,
-        dto.isActive,
+        dto.phoneNumber,
+        dto.password,
+        dto.isAdmin ?? false,
+        dto.isActive ?? true,
       ),
     );
   }
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
   @Get('get-All')
   getAll(query: GetAllUsersQuery) {
     return this.qBus.execute(new GetAllUsersQuery());
@@ -67,7 +69,7 @@ export class UsersController {
   @Get()
   findOne(@Query() querry: GetAllUsersQuery, @Body() dto: GetUserDto) {
     return this.qBus.execute(
-      new GetUserQuery(dto.id, dto.fullName, dto.email, dto.phoneNumber),
+      new GetUserQuery(dto.id, dto.fullName, dto.phoneNumber),
     );
   }
   @UseGuards(JwtAuthGuard)
@@ -104,19 +106,19 @@ export class UsersController {
     return {
       id: updatedUser.id,
       fullName: updatedUser.fullName,
-      email: updatedUser.email,
       phoneNumber: updatedUser.phoneNumber,
       profileImage: updatedUser.profileImage,
       isAdmin: updatedUser.isAdmin,
       isActive: updatedUser.isActive,
     };
   }
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
     return this.cBus.execute(
       new UpdateUserCommand(
-        dto.id,
-        dto.email,
+        id,
         dto.fullName,
         dto.password,
         dto.phoneNumber,

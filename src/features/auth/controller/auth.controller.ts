@@ -3,8 +3,6 @@ import {
   Controller,
   Get,
   Post,
-  Query,
-  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -15,11 +13,21 @@ import { RegisterDto } from '../dto/auth.dto';
 import { LoginDto } from '../dto/auth.dto';
 import { RegisterCommand } from '../commands/register/register.command';
 import { LoginCommand } from '../commands/login/login.command';
-import { VerifyOtpCommand } from '../commands/verify-otp/verify-otp.command';
 import { JwtAuthGuard } from '../../../shared/guards/jwt.auth.guard';
-import { OtpRateLimitGuard } from '../../../shared/guards/otp-rate-limit.guard';
 import { CurrentUser } from '../../../shared/common/decorators/current-user.decorator';
 import { User } from '../../../shared/entities/user/user.entity'; 
+
+type AuthResult = {
+  accessToken: string;
+  user: {
+    id: number;
+    fullName: string;
+    phoneNumber: string;
+    profileImage?: string;
+    isAdmin: boolean;
+    isActive: boolean;
+  };
+};
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -27,57 +35,44 @@ export class AuthController {
   constructor(private readonly commandBus: CommandBus) {}
 
   @Post('register')
-  @UseGuards(OtpRateLimitGuard)
-  @ApiOperation({
-    summary: 'Register new user — sends activation link to email',
-  })
-  register(@Body() dto: RegisterDto) {
-    return this.commandBus.execute(
+  @ApiOperation({ summary: 'Register and start an authenticated session' })
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) response: express.Response,
+  ) {
+    const result = await this.commandBus.execute<RegisterCommand, AuthResult>(
       new RegisterCommand(
         dto.fullName,
         dto.phoneNumber,
-        dto.email,
         dto.password,
-        dto.isAdmin,
-        dto.isActive,
       ),
     );
+    this.setAccessTokenCookie(response, result.accessToken);
+    return result;
   }
 
   @Post('login')
-  @UseGuards(OtpRateLimitGuard)
-  @ApiOperation({ summary: 'Login — sends login link to email' })
-  login(@Body() dto: LoginDto) {
-    return this.commandBus.execute(
-      new LoginCommand(dto.email, dto.phoneNumber, dto.password),
-    );
-  }
-
-  @Get('verify')
-  @ApiOperation({ summary: 'Verify OTP token from email link' })
-  async verify(
-    @Query('token') token: string,
-    @Query('type') type: string,
-    @Res({ passthrough: true }) res: express.Response,
+  @ApiOperation({ summary: 'Login with phone number and password' })
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) response: express.Response,
   ) {
-    const result = await this.commandBus.execute(
-      new VerifyOtpCommand(token, type),
+    const result = await this.commandBus.execute<LoginCommand, AuthResult>(
+      new LoginCommand(dto.phoneNumber, dto.password),
     );
-
-    res.cookie('access_token', result.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
+    this.setAccessTokenCookie(response, result.accessToken);
     return result;
   }
 
   @Post('logout')
   @ApiOperation({ summary: 'Logout — clears cookie' })
   logout(@Res({ passthrough: true }) res: express.Response) {
-    res.clearCookie('access_token');
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
     return { message: 'Logged out successfully' };
   }
 
@@ -89,11 +84,22 @@ export class AuthController {
     return {
       id: user.id,
       fullName: user.fullName,
-      email: user.email,
       phoneNumber: user.phoneNumber,
       profileImage: user.profileImage,
       isAdmin: user.isAdmin,
       isActive: user.isActive,
     };
+  }
+
+  private setAccessTokenCookie(
+    response: express.Response,
+    accessToken: string,
+  ): void {
+    response.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
   }
 }

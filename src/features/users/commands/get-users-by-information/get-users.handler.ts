@@ -12,11 +12,10 @@ export class GetUserHandler implements IQueryHandler<GetUserQuery> {
     private readonly user: Repository<User>,
   ) {}
   async execute(query: GetUserQuery): Promise<User[]> {
-    const { id, phoneNumber, email, fullName } = query;
+    const { id, phoneNumber, fullName } = query;
     const Condition: FindOptionsWhere<User>[] = [];
     if (id) Condition.push({ id });
     if (phoneNumber) Condition.push({ phoneNumber });
-    if (email) Condition.push({ email });
     if (fullName) Condition.push({ fullName });
     if (Condition.length === 0) {
       throw new NotFoundException('user not found or not added');

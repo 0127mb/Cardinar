@@ -12,10 +12,7 @@ export class User {
   @typeorm.Column({ type: 'varchar', length: 16, unique: true })
   phoneNumber: string;
 
-  @typeorm.Column({ type: 'varchar', length: 64 })
-  email: string;
-
-  @typeorm.Column({ type: 'varchar', length: 128 })
+  @typeorm.Column({ type: 'varchar', length: 128, select: false })
   password: string;
 
   @typeorm.Column({ type: 'varchar', length: 512, nullable: true })
@@ -23,7 +20,7 @@ export class User {
 
   @typeorm.Column({ type: 'bool', default: false })
   isAdmin: boolean;
-  @typeorm.Column({ type: 'bool', default: false })
+  @typeorm.Column({ type: 'bool', default: true })
   isActive: boolean;
 
   @typeorm.OneToMany(() => Request, (request) => request.user, { lazy: true })
